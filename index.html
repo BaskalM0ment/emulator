@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Drop & Play — NES Emulator (single-file)</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+    body{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;background:#0b1220;color:#dbe7ff}
+    .drop{width:640px;max-width:95vw;height:160px;border:3px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#071022, #0d1b2d);cursor:pointer}
+    .drop.drag{border-color:rgba(124, 211, 255, .6);box-shadow:0 8px 30px rgba(0,0,0,.6)}
+    canvas{image-rendering:pixelated;border-radius:6px;box-shadow:0 8px 40px rgba(2,6,23,.7)}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:#0f2336;border:1px solid rgba(255,255,255,0.04);color:#cfe9ff;padding:8px 12px;border-radius:8px}
+    small{opacity:0.7}
+    a{color:#9fe7ff}
+  </style>
+</head>
+<body>
+  <h1 style="margin:0;font-size:20px">Drop & Play — NES (demo)</h1>
+  <div id="drop" class="drop">
+    <div style="text-align:center">
+      <div style="font-weight:700">Drop a <strong>.nes</strong> ROM file here</div>
+      <div style="margin-top:6px"><small>or click to choose a file — the page will try to run NES ROMs using jsnes (loaded from a CDN)</small></div>
+    </div>
+  </div>
+
+  <div id="player" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+    <canvas id="screen" width="256" height="240" style="width:512px;height:480px;display:none"></canvas>
+    <div class="controls">
+      <button id="resetBtn" disabled>Reset</button>
+      <button id="pauseBtn" disabled>Pause</button>
+      <label style="display:flex;align-items:center;gap:8px"><input id="scale" type="range" min="1" max="4" value="2"> <small>scale</small></label>
+    </div>
+    <div><small>Controls: Arrow keys = D-pad, Z = A, X = B, Enter = Start, Shift = Select</small></div>
+  </div>
+
+  <input id="fileInput" type="file" accept=".nes" style="display:none">
+
+  <script>
+    // This page uses jsnes from a CDN. If you'd like an offline single-file, embed the jsnes build here.
+    // NOTE: You must legally own any ROM you load. This tool is for experimentation/testing only.
+
+    const drop = document.getElementById('drop');
+    const fileInput = document.getElementById('fileInput');
+    const canvas = document.getElementById('screen');
+    const ctx = canvas.getContext('2d');
+    const resetBtn = document.getElementById('resetBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const scale = document.getElementById('scale');
+
+    let nes = null;
+    let imageData = ctx.createImageData(256, 240);
+    let running = false;
+
+    // load jsnes from unpkg
+    function loadJsnes() {
+      return new Promise((resolve, reject) => {
+        if (window.jsnes) return resolve(window.jsnes);
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/jsnes@0.7.0/dist/jsnes.min.js';
+        s.onload = () => resolve(window.jsnes);
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    function arrayBufferToBinaryString(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunk = 0x8000; // avoid huge concatenations
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return binary;
+    }
+
+    function startNES(romBuffer) {
+      loadJsnes().then(jsnes => {
+        // create NES instance
+        nes = new jsnes.NES({
+          onFrame: function(frameBuffer) {
+            // frameBuffer is an array of 256*240 32-bit RGB values (0xRRGGBB)
+            const data = imageData.data;
+            let p = 0;
+            for (let i = 0; i < frameBuffer.length; i++) {
+              const c = frameBuffer[i] | 0;
+              data[p++] = (c >> 16) & 0xff; // r
+              data[p++] = (c >> 8) & 0xff;  // g
+              data[p++] = c & 0xff;         // b
+              data[p++] = 0xff;             // a
+            }
+            ctx.putImageData(imageData, 0, 0);
+          }
+        });
+
+        const binary = arrayBufferToBinaryString(romBuffer);
+        try {
+          nes.loadROM(binary);
+        } catch (e) {
+          alert('Failed to load ROM: ' + e);
+          console.error(e);
+          return;
+        }
+
+        canvas.style.display = 'block';
+        resetBtn.disabled = false;
+        pauseBtn.disabled = false;
+        running = true;
+
+        // start the emulation loop
+        function frame() {
+          if (running) nes.frame();
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }).catch(err => {
+        alert('Could not load jsnes library from CDN. Check network or use a build that includes the emulator.');
+        console.error(err);
+      });
+    }
+
+    // drag & drop
+    ['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => {ev.preventDefault(); drop.classList.add('drag');}));
+    ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => {ev.preventDefault(); drop.classList.remove('drag');}));
+
+    drop.addEventListener('click', () => fileInput.click());
+
+    drop.addEventListener('drop', ev => {
+      const f = ev.dataTransfer.files[0];
+      if (!f) return;
+      handleFile(f);
+    });
+
+    fileInput.addEventListener('change', ev => {
+      const f = ev.target.files[0];
+      if (!f) return;
+      handleFile(f);
+    });
+
+    function handleFile(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.nes')) {
+        const reader = new FileReader();
+        reader.onload = () => startNES(reader.result);
+        reader.readAsArrayBuffer(file);
+      } else if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+        // fallback: play audio/video files in a tag
+        const url = URL.createObjectURL(file);
+        const win = window.open('', '_blank');
+        win.document.write(`<h3>Playing file: ${file.name}</h3><video src="${url}" controls autoplay style="max-width:100%"></video>`);
+      } else {
+        alert('Unknown file type. This demo only supports .nes ROMs (or audio/video fallbacks).');
+      }
+    }
+
+    // basic keyboard -> controller mapping
+    const KEYMAP = {
+      37: 'LEFT', // left arrow
+      38: 'UP',
+      39: 'RIGHT',
+      40: 'DOWN',
+      90: 'A', // Z
+      88: 'B', // X
+      13: 'START',
+      16: 'SELECT' // Shift
+    };
+
+    const BUTTONS = {
+      'A': jsnesBtn('A'),
+      'B': jsnesBtn('B'),
+      'SELECT': jsnesBtn('SELECT'),
+      'START': jsnesBtn('START'),
+      'UP': jsnesBtn('UP'),
+      'DOWN': jsnesBtn('DOWN'),
+      'LEFT': jsnesBtn('LEFT'),
+      'RIGHT': jsnesBtn('RIGHT')
+    };
+
+    // Helper to map to jsnes constants (setControllerButton)
+    function jsnesBtn(name) { return name; }
+
+    document.addEventListener('keydown', (e) => handleKey(e, true));
+    document.addEventListener('keyup', (e) => handleKey(e, false));
+
+    function handleKey(e, down) {
+      if (!nes) return;
+      const key = KEYMAP[e.keyCode];
+      if (!key) return;
+      // jsnes API: nes.buttonDown(1, jsnes.Controller.BUTTON_A)
+      // But since this build exposes names differently across versions, we'll map manually
+      const map = {
+        'A': 0, 'B': 1, 'SELECT': 2, 'START': 3, 'UP': 4, 'DOWN': 5, 'LEFT': 6, 'RIGHT': 7
+      };
+      const btn = map[key];
+      if (btn === undefined) return;
+      if (down) nes.buttonDown(1, btn);
+      else nes.buttonUp(1, btn);
+      e.preventDefault();
+    }
+
+    resetBtn.addEventListener('click', () => { if (nes) nes.reset(); });
+    pauseBtn.addEventListener('click', () => { running = !running; pauseBtn.textContent = running ? 'Pause' : 'Resume'; });
+
+    scale.addEventListener('input', () => {
+      const s = +scale.value;
+      canvas.style.width = (256*s) + 'px';
+      canvas.style.height = (240*s) + 'px';
+    });
+
+    // initial scale
+    scale.dispatchEvent(new Event('input'));
+  </script>
+</body>
+</html>
