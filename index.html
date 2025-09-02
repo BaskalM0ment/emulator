@@ -6,134 +6,70 @@
   <title>Multi-System Drop & Play — Emulator (single-file)</title>
   <style>
     :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-    body{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px;background:#06121a;color:#dbe7ff}
-    header{display:flex;flex-direction:column;align-items:center;gap:6px}
-    .drop{width:720px;max-width:95vw;height:160px;border:3px dashed rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#071022, #0d1b2d);cursor:pointer}
-    .drop.drag{border-color:rgba(124,211,255,.6);box-shadow:0 10px 40px rgba(0,0,0,.6)}
-    canvas{image-rendering:pixelated;border-radius:6px;box-shadow:0 8px 40px rgba(2,6,23,.7);background:black}
-    .controls{display:flex;gap:8px;align-items:center}
-    button, select, input[type="file"] + label{background:#0f2336;border:1px solid rgba(255,255,255,0.04);color:#cfe9ff;padding:8px 12px;border-radius:8px;cursor:pointer}
-    small{opacity:0.8}
-    .row{display:flex;gap:8px;align-items:center}
-    .right{margin-left:auto}
-    .notes{max-width:720px;opacity:0.85;font-size:13px}
-    .state-list{display:flex;gap:6px;flex-wrap:wrap}
-    .state-item{background:#092032;padding:6px 8px;border-radius:6px}
-    .file-drop-hint{opacity:0.85}
+    body{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;background:#0b1220;color:#dbe7ff}
+    .drop{width:640px;max-width:95vw;height:160px;border:3px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#071022, #0d1b2d);cursor:pointer;text-align:center}
+    .drop.drag{border-color:rgba(124, 211, 255, .6);box-shadow:0 8px 30px rgba(0,0,0,.6)}
+    canvas{image-rendering:pixelated;border-radius:6px;box-shadow:0 8px 40px rgba(2,6,23,.7)}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+    button{background:#0f2336;border:1px solid rgba(255,255,255,0.1);color:#cfe9ff;padding:8px 12px;border-radius:8px;cursor:pointer}
+    small{opacity:0.7}
+    a{color:#9fe7ff}
   </style>
 </head>
 <body>
-  <header>
-    <h1 style="margin:0;font-size:20px">Multi-System Drop & Play — Emulator (single-file)</h1>
-    <div class="file-drop-hint">Drop a ROM (or click) — supported: NES by default. Other systems can be added by providing a core URL.</div>
-  </header>
-
-  <div style="display:flex;gap:12px;align-items:center;max-width:95vw;width:720px">
-    <div style="flex:1">
-      <div id="drop" class="drop">
-        <div style="text-align:center">
-          <div style="font-weight:700">Drop ROM (.nes, .gb, .sfc, .smc, .gba, ...)</div>
-          <div style="margin-top:6px" class="file-drop-hint"><small>or click to choose a file</small></div>
-        </div>
-      </div>
-    </div>
-    <div style="width:260px">
-      <div class="row" style="margin-bottom:8px">
-        <select id="systemSelect"><option value="auto">Auto-detect / NES</option><option value="nes">NES (jsnes)</option><option value="custom">Custom core (URL)</option></select>
-        <input id="coreUrl" placeholder="Core JS/WASM URL (when Custom)" style="flex:1;padding:8px;border-radius:8px;background:#071a27;border:1px solid rgba(255,255,255,0.03);color:#cfe9ff" />
-      </div>
-      <div class="row">
-        <button id="saveROM">Save ROM</button>
-        <button id="clearStorage">Clear Storage</button>
-      </div>
+  <h1 style="margin:0;font-size:20px">Multi-System Drop & Play Emulator</h1>
+  <div id="drop" class="drop">
+    <div>
+      <div style="font-weight:700">Drop a ROM file here</div>
+      <div style="margin-top:6px"><small>or click to choose a file — supports NES, SNES, GB, GBC, GBA, Genesis (depending on core)</small></div>
     </div>
   </div>
 
-  <div id="player" style="display:flex;flex-direction:column;align-items:center;gap:8px;max-width:95vw;width:720px;margin-top:6px">
+  <div id="player" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
     <canvas id="screen" width="256" height="240" style="width:512px;height:480px;display:none"></canvas>
-
-    <div class="controls" style="width:100%;justify-content:space-between">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="resetBtn" disabled>Reset</button>
-        <button id="pauseBtn" disabled>Pause</button>
-        <button id="saveStateBtn" disabled>Save State</button>
-        <button id="loadStateBtn" disabled>Load State</button>
-        <button id="exportStateBtn" disabled>Export State</button>
-        <button id="importStateBtn">Import State</button>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <label style="display:flex;align-items:center;gap:8px"><input id="scale" type="range" min="1" max="4" value="2"> <small>scale</small></label>
-      </div>
+    <div class="controls">
+      <button id="resetBtn" disabled>Reset</button>
+      <button id="pauseBtn" disabled>Pause</button>
+      <button id="saveBtn" disabled>Save State</button>
+      <button id="loadBtn" disabled>Load State</button>
+      <button id="exportStateBtn" disabled>Export State</button>
+      <button id="importStateBtn">Import State</button>
+      <button id="saveRomBtn" disabled>Save ROM</button>
+      <button id="loadCoreBtn">Load Custom Core</button>
+      <label style="display:flex;align-items:center;gap:8px"><input id="scale" type="range" min="1" max="4" value="2"> <small>scale</small></label>
     </div>
-
-    <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
-      <div><small>Controls: Arrow keys = D-pad, Z = A, X = B, Enter = Start, Shift = Select</small></div>
-      <div class="state-list" id="savedStates"></div>
-    </div>
-
+    <div><small>Controls: Arrow keys = D-pad, Z = A, X = B, Enter = Start, Shift = Select</small></div>
   </div>
 
-  <input id="fileInput" type="file" accept="*/*" style="display:none">
-  <input id="stateFileInput" type="file" accept="application/octet-stream,application/json" style="display:none">
-
-  <!--
-    NOTES:
-    - This single-file HTML provides a 'framework' for multi-system emulation.
-    - It includes a working NES adapter using jsnes (loaded from a CDN).
-    - For other systems you can supply a core JS/WASM URL (Custom core) that exposes a small adapter API described below.
-
-    Adapter API (what a core JS/WASM file should expose to work with this UI):
-      window.EmuCore = {
-        init({canvas, audioCtx, onFrame}) => Promise<instance>,
-      }
-    Where instance supports:
-      instance.loadROM(ArrayBuffer)
-      instance.start(), instance.stop(), instance.reset()
-      instance.keyDown(button), instance.keyUp(button)
-      instance.saveState() -> Uint8Array | JSON-serializable
-      instance.loadState(data)
-
-    The included NES adapter uses jsnes (unpkg). Save/load state tries multiple method names to be compatible with different builds.
-
-    LEGAL: Only load ROMs you own.
-  -->
+  <!-- hidden file inputs -->
+  <input id="fileInput" type="file" accept=".nes,.smc,.sfc,.gb,.gbc,.gba,.bin,.gen,.md,.zip" style="display:none">
+  <input id="importStateInput" type="file" accept=".sav,.state,.bin" style="display:none">
+  <input id="loadCoreInput" type="file" accept=".js,.wasm" style="display:none">
 
   <script>
-    // Utility helpers
-    function by(id){return document.getElementById(id)}
+    const drop = document.getElementById('drop');
+    const fileInput = document.getElementById('fileInput');
+    const importStateInput = document.getElementById('importStateInput');
+    const loadCoreInput = document.getElementById('loadCoreInput');
+    const canvas = document.getElementById('screen');
+    const ctx = canvas.getContext('2d');
+    const resetBtn = document.getElementById('resetBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const loadBtn = document.getElementById('loadBtn');
+    const exportStateBtn = document.getElementById('exportStateBtn');
+    const saveRomBtn = document.getElementById('saveRomBtn');
+    const scale = document.getElementById('scale');
 
-    const drop = by('drop');
-    const fileInput = by('fileInput');
-    const screen = by('screen');
-    const ctx = screen.getContext('2d');
-    const resetBtn = by('resetBtn');
-    const pauseBtn = by('pauseBtn');
-    const saveStateBtn = by('saveStateBtn');
-    const loadStateBtn = by('loadStateBtn');
-    const exportStateBtn = by('exportStateBtn');
-    const importStateBtn = by('importStateBtn');
-    const scale = by('scale');
-    const systemSelect = by('systemSelect');
-    const coreUrl = by('coreUrl');
-    const savedStatesEl = by('savedStates');
-    const saveROMBtn = by('saveROM');
-    const clearStorageBtn = by('clearStorage');
-    const stateFileInput = by('stateFileInput');
-
-    let currentCore = null; // adapter instance
-    let currentSystem = 'nes';
-    let romBuffer = null;
+    let nes = null;
+    let imageData = ctx.createImageData(256, 240);
     let running = false;
-    let animationFrame = null;
+    let currentROM = null;
 
-    // WebAudio
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = AudioContext ? new AudioContext() : null;
-
-    // ---- NES adapter (using jsnes) ----
-    async function loadJsnes() {
-      if (window.jsnes) return window.jsnes;
+    // Load jsnes from CDN for NES support
+    function loadJsnes() {
       return new Promise((resolve, reject) => {
+        if (window.jsnes) return resolve(window.jsnes);
         const s = document.createElement('script');
         s.src = 'https://unpkg.com/jsnes@0.7.0/dist/jsnes.min.js';
         s.onload = () => resolve(window.jsnes);
@@ -142,344 +78,177 @@
       });
     }
 
-    function makeNESAdapter() {
-      // returns an object with the adapter API described above
-      let nes = null;
-      let imageData = ctx.createImageData(256,240);
-
-      // audio setup for jsnes: jsnes exposes APU audio samples via audio callback
-      let scriptNode = null;
-      let audioQueue = [];
-
-      function setupAudio(jsnes) {
-        if (!audioCtx) return;
-        // try using jsnes' audio callback if available
-        // older jsnes builds expose jsnes.APU and a 'setSampleRate' or 'onAudio' style API.
-        // Here we'll feed samples from a pull model using a ScriptProcessor (fallback) — this is not perfect but works.
-        const bufferSize = 2048;
-        try {
-          scriptNode = audioCtx.createScriptProcessor(bufferSize, 0, 1);
-          scriptNode.onaudioprocess = (e) => {
-            const out = e.outputBuffer.getChannelData(0);
-            for (let i = 0; i < out.length; i++) {
-              out[i] = audioQueue.length ? audioQueue.shift() : 0;
-            }
-          };
-          scriptNode.connect(audioCtx.destination);
-        } catch (e) { console.warn('Audio unavailable', e); }
-      }
-
-      function pushSamples(samples) {
-        // samples: Float32Array or array of numbers between -1..1
-        for (let i = 0; i < samples.length; i++) audioQueue.push(samples[i]);
-        // keep queue bounded
-        if (audioQueue.length > 44100) audioQueue.splice(0, audioQueue.length - 44100);
-      }
-
-      return {
-        init: async ({canvas, audioCtx:ac, onFrame}) => {
-          const jsnes = await loadJsnes();
-          // create NES instance
-          nes = new jsnes.NES({
-            onFrame: function(frameBuffer) {
-              const data = imageData.data;
-              let p = 0;
-              for (let i = 0; i < frameBuffer.length; i++) {
-                const c = frameBuffer[i] | 0;
-                data[p++] = (c >> 16) & 0xff; // r
-                data[p++] = (c >> 8) & 0xff;  // g
-                data[p++] = c & 0xff;         // b
-                data[p++] = 0xff;             // a
-              }
-              ctx.putImageData(imageData, 0, 0);
-            }
-          });
-
-          // audio: attempt to use NES APU if present
-          setupAudio(jsnes);
-
-          // basic adapter instance
-          const instance = {
-            loadROM: (arrayBuffer) => {
-              // jsnes expects a binary string
-              const bytes = new Uint8Array(arrayBuffer);
-              let binary = '';
-              const chunk = 0x8000;
-              for (let i = 0; i < bytes.length; i += chunk) {
-                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-              }
-              nes.loadROM(binary);
-            },
-            start: () => { running = true; instance._frameLoop(); },
-            stop: () => { running = false; },
-            reset: () => { if (nes && nes.reset) nes.reset(); },
-            _frameLoop: () => {
-              if (!running) return;
-              try { nes.frame(); } catch(e){ console.error(e); running=false; }
-              animationFrame = requestAnimationFrame(instance._frameLoop);
-            },
-            keyDown: (btn) => { // btn: string like 'A','B','LEFT' ...
-              const map = {'A':0,'B':1,'SELECT':2,'START':3,'UP':4,'DOWN':5,'LEFT':6,'RIGHT':7};
-              const b = map[btn]; if (b === undefined) return; nes.buttonDown(1,b);
-            },
-            keyUp: (btn) => { const map = {'A':0,'B':1,'SELECT':2,'START':3,'UP':4,'DOWN':5,'LEFT':6,'RIGHT':7}; const b=map[btn]; if (b===undefined) return; nes.buttonUp(1,b); },
-            saveState: () => {
-              // try common method names for save state
-              if (!nes) return null;
-              if (typeof nes.toJSON === 'function') return JSON.stringify(nes.toJSON());
-              if (typeof nes.getState === 'function') return JSON.stringify(nes.getState());
-              if (typeof nes.saveState === 'function') return nes.saveState();
-              // fallback: not supported
-              throw new Error('Save state not supported by this jsnes build');
-            },
-            loadState: (data) => {
-              if (!nes) return;
-              try {
-                if (typeof nes.fromJSON === 'function') return nes.fromJSON(JSON.parse(data));
-                if (typeof nes.setState === 'function') return nes.setState(JSON.parse(data));
-                if (typeof nes.loadState === 'function') return nes.loadState(data);
-              } catch (e) { throw new Error('Failed to load state: '+e.message); }
-              throw new Error('Load state not supported by this jsnes build');
-            }
-          };
-
-          return instance;
-        }
-      };
-    }
-
-    // ---- Framework logic ----
-    const adapters = {
-      'nes': makeNESAdapter()
-      // other adapters could be added here, or user can supply a core that exposes window.EmuCore
-    };
-
-    async function initCoreForSystem(system) {
-      if (currentCore && currentCore.stop) currentCore.stop();
-      currentSystem = system;
-      // choose adapter
-      if (system === 'nes') {
-        currentCore = await adapters.nes.init({canvas: screen, audioCtx, onFrame: null});
-      } else if (system === 'custom') {
-        // attempt to load a custom core from provided URL which must set window.EmuCore
-        const url = coreUrl.value.trim();
-        if (!url) throw new Error('Please provide core URL');
-        await loadScript(url);
-        if (!window.EmuCore || typeof window.EmuCore.init !== 'function') throw new Error('Core did not expose EmuCore.init');
-        currentCore = await window.EmuCore.init({canvas: screen, audioCtx, onFrame: null});
-      } else {
-        // auto -> default to NES
-        currentCore = await adapters.nes.init({canvas: screen, audioCtx, onFrame: null});
-      }
-
-      // enable controls
-      resetBtn.disabled = false;
-      pauseBtn.disabled = false;
-      saveStateBtn.disabled = false;
-      loadStateBtn.disabled = false;
-      exportStateBtn.disabled = false;
-    }
-
-    function loadScript(url){
-      return new Promise((resolve,reject)=>{
-        const s = document.createElement('script');
-        s.src = url; s.onload = () => resolve(); s.onerror = (e)=>reject(e); document.head.appendChild(s);
-      });
-    }
-
-    async function handleFile(file) {
-      const name = file.name.toLowerCase();
-      romBuffer = await file.arrayBuffer();
-
-      // detect system by extension basic heuristic
-      let sys = 'nes';
-      if (name.endsWith('.nes')) sys = 'nes';
-      else if (name.endsWith('.gb') || name.endsWith('.gbc')) sys = 'gb';
-      else if (name.endsWith('.sfc') || name.endsWith('.smc')) sys = 'snes';
-      else if (name.endsWith('.gba')) sys = 'gba';
-      else if (name.endsWith('.bin') || name.endsWith('.gen') || name.endsWith('.sms')) sys = 'other';
-
-      // If user selected a system explicitly, respect it
-      const selected = systemSelect.value;
-      if (selected !== 'auto') sys = selected === 'custom' ? 'custom' : selected;
-
-      // init core
-      try {
-        await initCoreForSystem(sys === 'custom' ? 'custom' : sys);
-      } catch (e) {
-        alert('Failed to initialize core: ' + e.message);
-        console.error(e); return;
-      }
-
-      // load ROM into core if supported
-      try {
-        if (!currentCore || !currentCore.loadROM) throw new Error('Core does not support loadROM');
-        currentCore.loadROM(romBuffer);
-      } catch (e) {
-        alert('Failed to load ROM into core: ' + e.message);
-        console.error(e);
-        return;
-      }
-
-      screen.style.display = 'block';
-      scale.dispatchEvent(new Event('input'));
-      // start
-      if (currentCore.start) currentCore.start();
-      running = true;
-
-      // store the last ROM in localStorage for quick reload (base64)
-      try { localStorage.setItem('lastROM', arrayBufferToBase64(romBuffer)); localStorage.setItem('lastROM-name', file.name); } catch(e){console.warn('Could not save ROM to storage', e)}
-
-      refreshSavedStatesList();
-    }
-
-    function arrayBufferToBase64(buffer){
+    function arrayBufferToBinaryString(buffer) {
       const bytes = new Uint8Array(buffer);
       let binary = '';
       const chunk = 0x8000;
       for (let i = 0; i < bytes.length; i += chunk) {
         binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
       }
-      return btoa(binary);
+      return binary;
     }
 
-    function base64ToArrayBuffer(base64){
-      const binary = atob(base64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-      return bytes.buffer;
-    }
-
-    // drag & drop handlers
-    ['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => {ev.preventDefault(); drop.classList.add('drag');}));
-    ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => {ev.preventDefault(); drop.classList.remove('drag');}));
-    drop.addEventListener('click', () => fileInput.click());
-    drop.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (!f) return; handleFile(f); });
-    fileInput.addEventListener('change', ev => { const f = ev.target.files[0]; if (!f) return; handleFile(f); });
-
-    // controls
-    resetBtn.addEventListener('click', () => { if (currentCore && currentCore.reset) currentCore.reset(); });
-    pauseBtn.addEventListener('click', () => { running = !running; pauseBtn.textContent = running ? 'Pause' : 'Resume'; if (running && currentCore && currentCore.start) currentCore.start(); else if (!running && currentCore && currentCore.stop) currentCore.stop(); });
-
-    // Save/Load state logic
-    saveStateBtn.addEventListener('click', async () => {
-      try {
-        if (!currentCore || !currentCore.saveState) throw new Error('Core does not support saveState');
-        const state = await currentCore.saveState();
-        const name = prompt('Name this save state', (new Date()).toISOString());
-        if (!name) return;
-        // store as base64 if Uint8Array, otherwise JSON string
-        let payload = null; let contentType = 'json';
-        if (state instanceof Uint8Array || state instanceof ArrayBuffer) { payload = btoa(String.fromCharCode.apply(null, new Uint8Array(state))); contentType = 'bin'; }
-        else { payload = JSON.stringify(state); contentType='json'; }
-        const entry = {name, time:Date.now(), data:payload, type:contentType, system:currentSystem};
-        const key = 'save_'+name+'_'+Date.now();
-        localStorage.setItem(key, JSON.stringify(entry));
-        refreshSavedStatesList();
-        alert('Saved state: '+name);
-      } catch (e) { alert('Save failed: '+e.message); console.error(e); }
-    });
-
-    loadStateBtn.addEventListener('click', async () => {
-      const keys = Object.keys(localStorage).filter(k=>k.startsWith('save_'));
-      if (!keys.length) { alert('No saved states in storage'); return; }
-      const list = keys.map(k=>({k,v:JSON.parse(localStorage.getItem(k))}));
-      const chosen = prompt('Enter saved state name (choose from list):
-' + list.map(x=>x.v.name+' — '+new Date(x.v.time).toLocaleString()).join('
-'));
-      if (!chosen) return;
-      const found = list.find(x=>x.v.name===chosen);
-      if (!found) { alert('Not found'); return; }
-      try {
-        const entry = found.v;
-        let data = entry.data;
-        if (entry.type === 'bin') data = Uint8Array.from(atob(data), c=>c.charCodeAt(0));
-        await currentCore.loadState(data);
-        alert('Loaded state: ' + entry.name);
-      } catch (e) { alert('Failed to load state: '+e.message); console.error(e); }
-    });
-
-    exportStateBtn.addEventListener('click', async () => {
-      try {
-        if (!currentCore || !currentCore.saveState) throw new Error('Core does not support saveState');
-        const state = await currentCore.saveState();
-        let blob;
-        if (state instanceof Uint8Array || state instanceof ArrayBuffer) blob = new Blob([state], {type:'application/octet-stream'});
-        else blob = new Blob([typeof state==='string'?state:JSON.stringify(state)], {type:'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'save-'+(new Date()).toISOString()+'.state'; a.click(); URL.revokeObjectURL(url);
-      } catch (e) { alert('Export failed: '+e.message); }
-    });
-
-    importStateBtn.addEventListener('click', ()=> stateFileInput.click());
-    stateFileInput.addEventListener('change', async (ev)=>{
-      const f = ev.target.files[0]; if (!f) return; const buf = await f.arrayBuffer();
-      // try parse as JSON first
-      try {
-        const text = new TextDecoder().decode(buf);
-        const parsed = JSON.parse(text);
-        await currentCore.loadState(parsed);
-        alert('Imported JSON state');
-      } catch (e) {
-        // fallback to binary
-        try { await currentCore.loadState(new Uint8Array(buf)); alert('Imported binary state'); } catch (e2) { alert('Failed to import state: '+e2.message); }
-      }
-    });
-
-    // Save ROM button -> export currently loaded ROM
-    saveROMBtn.addEventListener('click', ()=>{
-      if (!romBuffer) { alert('No ROM loaded'); return; }
-      const blob = new Blob([romBuffer], {type:'application/octet-stream'});
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = localStorage.getItem('lastROM-name') || 'rom.bin'; a.click();
-    });
-
-    clearStorageBtn.addEventListener('click', ()=>{ if (confirm('Clear all saved states and last ROM from localStorage?')) { Object.keys(localStorage).forEach(k=>{ if (k.startsWith('save_')||k.startsWith('lastROM')) localStorage.removeItem(k); }); refreshSavedStatesList(); }});
-
-    function refreshSavedStatesList(){
-      savedStatesEl.innerHTML = '';
-      const keys = Object.keys(localStorage).filter(k=>k.startsWith('save_')).sort((a,b)=>{ return JSON.parse(localStorage.getItem(b)).time - JSON.parse(localStorage.getItem(a)).time });
-      keys.forEach(k=>{
-        const v = JSON.parse(localStorage.getItem(k));
-        const el = document.createElement('div'); el.className='state-item'; el.textContent = v.name;
-        el.title = new Date(v.time).toLocaleString();
-        el.addEventListener('click', async ()=>{
-          if (!confirm('Load state: '+v.name+' ?')) return;
-          try {
-            let data = v.data;
-            if (v.type === 'bin') data = Uint8Array.from(atob(data), c=>c.charCodeAt(0));
-            await currentCore.loadState(data);
-            alert('Loaded: '+v.name);
-          } catch (e) { alert('Failed to load state: '+e.message); }
+    function startNES(romBuffer) {
+      loadJsnes().then(jsnes => {
+        nes = new jsnes.NES({
+          onFrame: function(frameBuffer) {
+            const data = imageData.data;
+            let p = 0;
+            for (let i = 0; i < frameBuffer.length; i++) {
+              const c = frameBuffer[i] | 0;
+              data[p++] = (c >> 16) & 0xff;
+              data[p++] = (c >> 8) & 0xff;
+              data[p++] = c & 0xff;
+              data[p++] = 0xff;
+            }
+            ctx.putImageData(imageData, 0, 0);
+          }
         });
-        savedStatesEl.appendChild(el);
+
+        const binary = arrayBufferToBinaryString(romBuffer);
+        try {
+          nes.loadROM(binary);
+        } catch (e) {
+          alert('Failed to load ROM: ' + e);
+          console.error(e);
+          return;
+        }
+
+        currentROM = romBuffer;
+        canvas.style.display = 'block';
+        resetBtn.disabled = false;
+        pauseBtn.disabled = false;
+        saveBtn.disabled = false;
+        loadBtn.disabled = false;
+        exportStateBtn.disabled = false;
+        saveRomBtn.disabled = false;
+        running = true;
+
+        function frame() {
+          if (running) nes.frame();
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }).catch(err => {
+        alert('Could not load jsnes library.');
+        console.error(err);
       });
     }
 
-    // key mapping
-    const KEYMAP = {37:'LEFT',38:'UP',39:'RIGHT',40:'DOWN',90:'A',88:'B',13:'START',16:'SELECT'};
-    document.addEventListener('keydown', e=>{ if (!currentCore) return; const k = KEYMAP[e.keyCode]; if (k) { try { currentCore.keyDown(k); e.preventDefault(); } catch(e){} } });
-    document.addEventListener('keyup', e=>{ if (!currentCore) return; const k = KEYMAP[e.keyCode]; if (k) { try { currentCore.keyUp(k); e.preventDefault(); } catch(e){} } });
+    // Drag & Drop events
+    ['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => {ev.preventDefault(); drop.classList.add('drag');}));
+    ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => {ev.preventDefault(); drop.classList.remove('drag');}));
 
-    // scaling
-    scale.addEventListener('input', ()=>{ const s=+scale.value; screen.style.width=(256*s)+'px'; screen.style.height=(240*s)+'px'; });
+    drop.addEventListener('click', () => fileInput.click());
+
+    drop.addEventListener('drop', ev => {
+      const f = ev.dataTransfer.files[0];
+      if (!f) return;
+      handleFile(f);
+    });
+
+    fileInput.addEventListener('change', ev => {
+      const f = ev.target.files[0];
+      if (!f) return;
+      handleFile(f);
+    });
+
+    function handleFile(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.nes')) {
+        const reader = new FileReader();
+        reader.onload = () => startNES(reader.result);
+        reader.readAsArrayBuffer(file);
+      } else {
+        alert('This demo currently only has NES support built in.');
+      }
+    }
+
+    // Keyboard mapping
+    const KEYMAP = {37: 'LEFT',38: 'UP',39: 'RIGHT',40: 'DOWN',90: 'A',88: 'B',13: 'START',16: 'SELECT'};
+    document.addEventListener('keydown', e => handleKey(e, true));
+    document.addEventListener('keyup', e => handleKey(e, false));
+
+    function handleKey(e, down) {
+      if (!nes) return;
+      const key = KEYMAP[e.keyCode];
+      if (!key) return;
+      const map = {'A': 0,'B': 1,'SELECT': 2,'START': 3,'UP': 4,'DOWN': 5,'LEFT': 6,'RIGHT': 7};
+      const btn = map[key];
+      if (btn === undefined) return;
+      if (down) nes.buttonDown(1, btn); else nes.buttonUp(1, btn);
+      e.preventDefault();
+    }
+
+    resetBtn.addEventListener('click', () => { if (nes) nes.reset(); });
+    pauseBtn.addEventListener('click', () => { running = !running; pauseBtn.textContent = running ? 'Pause' : 'Resume'; });
+
+    // Save/Load state
+    saveBtn.addEventListener('click', () => {
+      if (!nes) return;
+      try {
+        localStorage.setItem('saveState', JSON.stringify(nes.toJSON()));
+        alert('State saved to localStorage.');
+      } catch(e){alert('Save not supported.');}
+    });
+
+    loadBtn.addEventListener('click', () => {
+      if (!nes) return;
+      try {
+        const state = localStorage.getItem('saveState');
+        if(state) nes.fromJSON(JSON.parse(state));
+        else alert('No save found.');
+      } catch(e){alert('Load not supported.');}
+    });
+
+    exportStateBtn.addEventListener('click', () => {
+      if (!nes) return;
+      try {
+        const blob = new Blob([JSON.stringify(nes.toJSON())], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'state.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch(e){alert('Export failed.');}
+    });
+
+    document.getElementById('importStateBtn').addEventListener('click', () => importStateInput.click());
+    importStateInput.addEventListener('change', ev => {
+      const f = ev.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { nes.fromJSON(JSON.parse(reader.result)); alert('State imported.'); }
+        catch(e){alert('Import failed.');}
+      };
+      reader.readAsText(f);
+    });
+
+    saveRomBtn.addEventListener('click', () => {
+      if (!currentROM) return;
+      const blob = new Blob([currentROM], {type:'application/octet-stream'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'game.nes';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('loadCoreBtn').addEventListener('click', () => loadCoreInput.click());
+    loadCoreInput.addEventListener('change', ev => {
+      alert('Custom cores not yet implemented in this demo.');
+    });
+
+    scale.addEventListener('input', () => {
+      const s = +scale.value;
+      canvas.style.width = (256*s) + 'px';
+      canvas.style.height = (240*s) + 'px';
+    });
+
     scale.dispatchEvent(new Event('input'));
-
-    // attempt to auto-load last ROM from localStorage
-    (async ()=>{
-      const last = localStorage.getItem('lastROM');
-      const name = localStorage.getItem('lastROM-name') || 'last.rom';
-      if (!last) return;
-      if (!confirm('Reload last ROM: '+name+'?')) return;
-      const buf = base64ToArrayBuffer(last);
-      // create a fake file object-like
-      romBuffer = buf;
-      try { await initCoreForSystem('nes'); currentCore.loadROM(buf); if (currentCore.start) currentCore.start(); } catch(e){console.warn('Failed to auto-load ROM', e);} 
-    })();
-
-    // helper: show a friendly message for unsupported operations
-    window.addEventListener('error', e=>{ console.error('Unhandled error',e); });
-
   </script>
 </body>
 </html>
